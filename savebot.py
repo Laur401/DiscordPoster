@@ -4,7 +4,7 @@ from http.client import HTTPSConnection
 def send_message():
     api_version=6
     user_id=***REMOVED***
-    token="***REMOVED***"
+    token=""
     channel_url="***REMOVED***"
     channel_id=***REMOVED***
     header_data={
