@@ -1,4 +1,6 @@
 import json
+import queue
+
 from ruamel.yaml import YAML
 from http.client import HTTPSConnection
 yaml=YAML()
@@ -23,6 +25,16 @@ class MessageInfo:
     def to_dict(self):
         return dict(message=self.message)
 
+class ScheduleMaker:
+    def __init__(self,user_id,user_token,channel_url,channel_id,message):
+        self.user_id=user_id
+        self.user_token=user_token
+        self.channel_url=channel_url
+        self.channel_id=channel_id
+        self.message=message
+    def to_dict(self):
+        return dict(user_id=self.user_id,user_token=self.user_token,channel_url=self.channel_url,channel_id=self.channel_id,message=self.message)
+
 class FileManager:
     def __init__(self,file):
         self.file=file
@@ -31,13 +43,17 @@ class FileManager:
         open(f"{self.file}.yaml", "a").close()
 
     def write_file(self, content):
-        with open(f"{self.file}.yaml", "r") as f:
-            data=yaml.load(f)
-        if data is None:
-            data=[]
-        data.append(content)
-        with open(f"{self.file}.yaml", "w") as f:
-            yaml.dump(data,f)
+        try:
+            with open(f"{self.file}.yaml", "r") as f:
+                data=yaml.load(f)
+            if data is None:
+                data=[]
+            data.append(content)
+            with open(f"{self.file}.yaml", "w") as f:
+                yaml.dump(data,f)
+        except FileNotFoundError:
+            self.create_file()
+            self.write_file(content)
 
     def read_file(self):
         with (open(f"{self.file}.yaml", "r")) as f:
@@ -67,40 +83,49 @@ class KeyWorker:
         else:
             return None
 
-def send_message(users,channels,messages):
-    api_version=6
-    users_key=KeyWorker(users)
-    channels_key=KeyWorker(channels)
-    messages_key=KeyWorker(messages)
+def send_message(queue):
+    api_version = 6
+    for i in queue:
+        header_data = {
+            "content-type":"application/json",
+            "user-id":i["user_id"],
+            "authorization":i["user_token"],
+            "host":"discordapp.com",
+            "referrer":i["channel_url"]
+        }
+        message_data = json.dumps({"content":i["message"]})
+        conn=HTTPSConnection("discordapp.com",443)
+        conn.request("POST",f"/api/v{api_version}/channels/{i['channel_id']}/messages", message_data, header_data)
+        print(conn.getresponse())
+
+def message_handler(users,channels,messages):
+    users_key = KeyWorker(users)
+    channels_key = KeyWorker(channels)
+    messages_key = KeyWorker(messages)
     users_key.key_lister("user_id")
-    user_nr=int(input("Which user to use?: "))
+    user_nr = int(input("Which user to use?: "))
     channels_key.key_lister("channel_id")
-    channel_nr=int(input("Which channel to use?: "))
+    channel_nr = int(input("Which channel to use?: "))
     messages_key.key_lister("message")
-    message_nr=int(input("Which message to send?: "))
-    user_id=users_key.key_getter("user_id",user_nr)
-    user_token=users_key.key_getter("user_token",user_nr)
-    channel_url=channels_key.key_getter("channel_url",channel_nr)
-    channel_id=channels_key.key_getter("channel_id",channel_nr)
-    message=messages_key.key_getter("message",message_nr)
-    header_data={
-        "content-type":"application/json",
-        "user-id":user_id,
-        "authorization":user_token,
-        "host":"discordapp.com",
-        "referrer":channel_url
-    }
-    message_data=json.dumps({"content":message})
-    conn=HTTPSConnection("discordapp.com",443)
-    conn.request("POST",f"/api/v{api_version}/channels/{channel_id}/messages", message_data, header_data)
-    print(conn.getresponse())
+    message_nr = int(input("Which message to send?: "))
+    user_id = users_key.key_getter("user_id", user_nr)
+    user_token = users_key.key_getter("user_token", user_nr)
+    channel_url = channels_key.key_getter("channel_url", channel_nr)
+    channel_id = channels_key.key_getter("channel_id", channel_nr)
+    message = messages_key.key_getter("message", message_nr)
+    i=input("Would you like to send or queue this message? (s/q):")
+    if i=="s":
+        message_package=dict(user_id=user_id,user_token=user_token,channel_url=channel_url,channel_id=channel_id,message=message)
+        send_message(message_package)
+    if i=="q":
+        queue_entry(user_id,user_token,channel_url,channel_id,message)
 
 def main():
     while True:
         user_input()
 
 def user_input():
-    i=input("Enter 1 to add a new user.\nEnter 2 to add a new channel.\nEnter 3 to add a new message.\nEnter 4 to post a message.: ")
+    i=input("Enter 1 to add a new user.\nEnter 2 to add a new channel.\nEnter 3 to add a new message.\nEnter 4 to post a message.\nEnter 5 to send the queue.: ")
     if i=="1":
         user_entry()
     if i=="2":
@@ -114,7 +139,11 @@ def user_input():
         channels = channels_file.read_file()
         messages_file = FileManager("messages")
         messages = messages_file.read_file()
-        send_message(users,channels,messages)
+        message_handler(users,channels,messages)
+    if i=="5":
+        queue_file=FileManager("queue")
+        queue = queue_file.read_file()
+        send_message(queue)
 
 def channel_entry():
     writer=FileManager("channels")
@@ -134,6 +163,11 @@ def message_entry():
     writer=FileManager("messages")
     message=input("Enter your message: ")
     info=MessageInfo(message)
+    writer.write_file(info.to_dict())
+
+def queue_entry(user_id,user_token,channel_url,channel_id,message):
+    writer=FileManager("queue")
+    info=ScheduleMaker(user_id,user_token,channel_url,channel_id,message)
     writer.write_file(info.to_dict())
 
 if __name__ == "__main__":
