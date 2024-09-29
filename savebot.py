@@ -1,6 +1,5 @@
 import json
-import queue
-
+import time
 from ruamel.yaml import YAML
 from http.client import HTTPSConnection
 yaml=YAML()
@@ -96,10 +95,12 @@ def send_message(queue):
             "referrer":i["channel_url"]
         }
         channel_id=i["channel_url"].split('/')[-1]
-        message_data = json.dumps({"content":i["message"]})
+        message=i["message"].replace(r"\n","\n")
+        message_data = json.dumps({"content":message})
         conn=HTTPSConnection("discordapp.com",443)
         conn.request("POST",f"/api/v{api_version}/channels/{channel_id}/messages", message_data, header_data)
         print(conn.getresponse())
+        time.sleep(8)
 
 def message_handler(users,channels,messages):
     users_key = KeyWorker(users)
