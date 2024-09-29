@@ -1,34 +1,27 @@
 import json
-import yaml
+from ruamel.yaml import YAML
 from http.client import HTTPSConnection
+yaml=YAML()
 
 class UserInfo:
     def __init__(self,user_id,user_token):
         self.user_id=user_id
         self.user_token=user_token
     def to_dict(self):
-        return {
-            'user_id':self.user_id,
-            'user_token':self.user_token
-        }
+        return dict(user_id=self.user_id,user_token=self.user_token)
 
 class ChannelInfo:
     def __init__(self,channel_url,channel_id):
         self.channel_url=channel_url
         self.channel_id=channel_id
     def to_dict(self):
-        return {
-            'channel_url':self.channel_url,
-            'channel_id':self.channel_id
-        }
+        return dict(channel_url=self.channel_url,channel_id=self.channel_id)
 
 class MessageInfo:
     def __init__(self,message):
         self.message=message
     def to_dict(self):
-        return {
-            'message':self.message
-        }
+        return dict(message=self.message)
 
 class FileManager:
     def __init__(self,file):
@@ -38,13 +31,18 @@ class FileManager:
         open(f"{self.file}.yaml", "a").close()
 
     def write_file(self, content):
-        f = open(f"{self.file}.yaml", "a")
-        yaml.dump(content,f)
-        f.close()
+        with open(f"{self.file}.yaml", "r") as f:
+            data=yaml.load(f)
+        if data is None:
+            data=[]
+        data.append(content)
+        with open(f"{self.file}.yaml", "w") as f:
+            yaml.dump(data,f)
 
     def read_file(self):
-        f = open(f"{self.file}.yaml", "r")
-        return list(yaml.safe_load_all(f)) #don't want a generator for now
+        with (open(f"{self.file}.yaml", "r")) as f:
+            data=yaml.load(f)
+            return [d for d in data]
 
 class KeyWorker:
     def __init__(self,dics):
