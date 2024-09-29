@@ -46,6 +46,8 @@ class FileManager:
         f = open(f"{self.file}.yaml", "r")
         return yaml.safe_load_all(f)
 
+def create_dict():
+
 
 def send_message(users,channels,messages):
     api_version=6
@@ -69,13 +71,10 @@ def send_message(users,channels,messages):
     print(conn.getresponse())
 
 def main():
-    users=[]
-    channels=[]
-    messages=[]
     while True:
-        user_input(users,channels,messages)
+        user_input()
 
-def user_input(users,channels,messages):
+def user_input():
     i=input("Enter 1 to add a new user.\nEnter 2 to add a new channel.\nEnter 3 to add a new message.\nEnter 4 to post a message.: ")
     if i=="1":
         user_entry(users)
@@ -87,18 +86,23 @@ def user_input(users,channels,messages):
         send_message(users,channels,messages)
 
 def channel_entry(channels):
+    writer=FileManager("channels.json")
     channel_url=input("Enter your Discord channel URL: ")
     channel_id=input("Enter your Discord channel ID: ")
-    channels.append(ChannelInfo(channel_url,channel_id))
+    writer.write_file(ChannelInfo(channel_url,channel_id))
 
 def user_entry(users):
+    writer=FileManager("users.json")
     user_id = input("Enter your Discord user ID: ")
     user_token = input("Enter your Discord user token: ")
     users.append(UserInfo(user_id,user_token))
+    writer.write_file(UserInfo(user_id,user_token))
 
 def message_entry(messages):
+    writer=FileManager("messages.json")
     message=input("Enter your message: ")
     messages.append(MessageInfo(message))
+    writer.write_file(MessageInfo(message))
 
 if __name__ == "__main__":
     main()
