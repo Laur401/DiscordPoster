@@ -46,18 +46,44 @@ class FileManager:
         f = open(f"{self.file}.yaml", "r")
         return yaml.safe_load_all(f)
 
-def create_dict():
+class KeyWorker:
+    def __init__(self,dics):
+        self.dics=dics
 
+    def key_lister(self,target_key):
+        i=1
+        for dic in self.dics:
+            for key, value in dic.items():
+                if key == target_key:
+                    print(f"{i}: {value}")
+                    i+=1
+
+    def key_getter(self,target_key,i):
+        values=[]
+        for dic in self.dics:
+            for key, value in dic.items():
+                if key == target_key:
+                    values.append(value)
+        if 1<=i<=len(values):
+            return values[i-1]
+        else:
+            return None
 
 def send_message(users,channels,messages):
     api_version=6
+    users_key=KeyWorker(users)
+    channels_key=KeyWorker(channels)
+    messages_key=KeyWorker(messages)
+    users_key.key_lister(users_key)
     user_nr=int(input("Which user to use?: "))
+    channels_key.key_lister(channels_key)
     channel_nr=int(input("Which channel to use?: "))
+    messages_key.key_lister(messages_key)
     message_nr=int(input("Which message to send?: "))
-    user_id=users[user_nr].user_id
-    user_token=users[user_nr].user_token
-    channel_url=channels[channel_nr].channel_url
-    channel_id=channels[channel_nr].channel_id
+    user_id=users_key.key_getter("user_id",user_nr)
+    user_token=users_key.key_getter("user_token",user_nr)
+    channel_url=channels_key.key_getter("channel_url",channel_nr)
+    channel_id=channels_key.key_getter("channel_id",channel_nr)
     header_data={
         "content-type":"application/json",
         "user-id":user_id,
@@ -75,34 +101,43 @@ def main():
         user_input()
 
 def user_input():
+
+
     i=input("Enter 1 to add a new user.\nEnter 2 to add a new channel.\nEnter 3 to add a new message.\nEnter 4 to post a message.: ")
     if i=="1":
-        user_entry(users)
+        user_entry()
     if i=="2":
-        channel_entry(channels)
+        channel_entry()
     if i=="3":
-        message_entry(messages)
+        message_entry()
     if i=="4":
+        users_file = FileManager("users.json")
+        users = users_file.read_file()
+        channels_file = FileManager("channels.json")
+        channels = channels_file.read_file()
+        messages_file = FileManager("messages.json")
+        messages = messages_file.read_file()
         send_message(users,channels,messages)
 
-def channel_entry(channels):
+def channel_entry():
     writer=FileManager("channels.json")
     channel_url=input("Enter your Discord channel URL: ")
     channel_id=input("Enter your Discord channel ID: ")
-    writer.write_file(ChannelInfo(channel_url,channel_id))
+    info=ChannelInfo(channel_url,channel_id)
+    writer.write_file(info.to_dict())
 
-def user_entry(users):
+def user_entry():
     writer=FileManager("users.json")
     user_id = input("Enter your Discord user ID: ")
     user_token = input("Enter your Discord user token: ")
-    users.append(UserInfo(user_id,user_token))
-    writer.write_file(UserInfo(user_id,user_token))
+    info=UserInfo(user_id,user_token)
+    writer.write_file(info.to_dict())
 
-def message_entry(messages):
+def message_entry():
     writer=FileManager("messages.json")
     message=input("Enter your message: ")
-    messages.append(MessageInfo(message))
-    writer.write_file(MessageInfo(message))
+    info=MessageInfo(message)
+    writer.write_file(info.to_dict())
 
 if __name__ == "__main__":
     main()
