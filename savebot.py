@@ -44,7 +44,7 @@ class FileManager:
 
     def read_file(self):
         f = open(f"{self.file}.yaml", "r")
-        return list(yaml.safe_load_all(f))
+        return list(yaml.safe_load_all(f)) #don't want a generator for now
 
 class KeyWorker:
     def __init__(self,dics):
@@ -52,7 +52,6 @@ class KeyWorker:
 
     def key_lister(self,target_key):
         i=1
-        print(self.dics)
         for dic in self.dics:
             for key, value in dic.items():
                 if key == target_key:
@@ -61,17 +60,14 @@ class KeyWorker:
 
     def key_getter(self,target_key,i):
         values=[]
-        print(self.dics)
         for dic in self.dics:
-            print(f"This is a dic: {dic}")
             for key, value in dic.items():
                 if key == target_key:
                     values.append(value)
-        #if 1<=i<=len(values):
-        print(values)
-        return values[i-1]
-        #else:
-            #return None
+        if 1<=i<=len(values):
+            return values[i-1]
+        else:
+            return None
 
 def send_message(users,channels,messages):
     api_version=6
@@ -98,7 +94,6 @@ def send_message(users,channels,messages):
     }
     message_data=json.dumps({"content":message})
     conn=HTTPSConnection("discordapp.com",443)
-    print(header_data)
     conn.request("POST",f"/api/v{api_version}/channels/{channel_id}/messages", message_data, header_data)
     print(conn.getresponse())
 
