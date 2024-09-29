@@ -1,20 +1,51 @@
 import json
-import token
+import yaml
 from http.client import HTTPSConnection
 
 class UserInfo:
     def __init__(self,user_id,user_token):
         self.user_id=user_id
         self.user_token=user_token
+    def to_dict(self):
+        return {
+            'user_id':self.user_id,
+            'user_token':self.user_token
+        }
 
 class ChannelInfo:
     def __init__(self,channel_url,channel_id):
         self.channel_url=channel_url
         self.channel_id=channel_id
+    def to_dict(self):
+        return {
+            'channel_url':self.channel_url,
+            'channel_id':self.channel_id
+        }
 
 class MessageInfo:
     def __init__(self,message):
         self.message=message
+    def to_dict(self):
+        return {
+            'message':self.message
+        }
+
+class FileManager:
+    def __init__(self,file):
+        self.file=file
+
+    def create_file(self):
+        open(f"{self.file}.yaml", "a").close()
+
+    def write_file(self, content):
+        f = open(f"{self.file}.yaml", "a")
+        yaml.dump(content,f)
+        f.close()
+
+    def read_file(self):
+        f = open(f"{self.file}.yaml", "r")
+        return yaml.safe_load_all(f)
+
 
 def send_message(users,channels,messages):
     api_version=6
